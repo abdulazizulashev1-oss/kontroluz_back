@@ -1,0 +1,35 @@
+// Minimal 16x16 transparent/blue ICO binary
+const fs = require('fs');
+const path = require('path');
+
+// 16x16 standard 32-bit ICO header and pixel buffer
+const header = Buffer.from([
+  0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x10, 0x10, 0x00, 0x00, 0x01, 0x00, 0x20, 0x00, 0x68, 0x04,
+  0x00, 0x00, 0x16, 0x00, 0x00, 0x00
+]);
+
+const dibHeader = Buffer.from([
+  0x28, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x01, 0x00, 0x20, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x12, 0x0b, 0x00, 0x00, 0x12, 0x0b, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+]);
+
+// 16x16 blue pixels (BGRA: 235, 120, 30, 255)
+const pixels = Buffer.alloc(16 * 16 * 4, 0);
+for (let i = 0; i < 16 * 16 * 4; i += 4) {
+  pixels[i] = 0xeb;     // B
+  pixels[i + 1] = 0x78; // G
+  pixels[i + 2] = 0x1e; // R
+  pixels[i + 3] = 0xff; // A
+}
+
+const mask = Buffer.alloc(16 * 16 / 8, 0);
+
+const icoBuffer = Buffer.concat([header, dibHeader, pixels, mask]);
+
+fs.writeFileSync(path.join(__dirname, '../favicon.ico'), icoBuffer);
+if (!fs.existsSync(path.join(__dirname, '../public'))) {
+  fs.mkdirSync(path.join(__dirname, '../public'), { recursive: true });
+}
+fs.writeFileSync(path.join(__dirname, '../public/favicon.ico'), icoBuffer);
+console.log('favicon.ico created successfully!');
