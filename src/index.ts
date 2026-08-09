@@ -1,5 +1,13 @@
+import fs from 'fs';
+import path from 'path';
+
 export default {
-  register(/*{ strapi }*/) {},
+  register() {
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+  },
 
   async bootstrap({ strapi }: { strapi: any }) {
     try {
