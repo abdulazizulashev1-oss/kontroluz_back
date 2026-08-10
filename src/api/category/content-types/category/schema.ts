@@ -16,6 +16,10 @@ export default {
     },
   },
   attributes: {
+    order: {
+      type: 'integer',
+      default: 1,
+    },
     slug: {
       type: 'string',
       required: true,

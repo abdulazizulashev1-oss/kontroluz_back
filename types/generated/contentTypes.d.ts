@@ -408,6 +408,7 @@ export interface ApiCategoryCategory extends Schema.CollectionType {
           localized: true;
         };
       }>;
+    order: Attribute.Integer & Attribute.DefaultTo<1>;
     parent: Attribute.Relation<
       'api::category.category',
       'manyToOne',
