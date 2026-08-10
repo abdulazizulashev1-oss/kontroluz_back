@@ -7,6 +7,11 @@ export default factories.createCoreController('api::product.product', () => ({
     // Clone query to avoid mutation issues
     const sanitizedQuery: any = { ...query };
 
+    // Default locale to 'uz' if not provided (supports uz, ru, en, all)
+    if (!sanitizedQuery.locale) {
+      sanitizedQuery.locale = 'uz';
+    }
+
     // 1. Handle Simplified Search ('search' or 'q')
     const searchTerm = (sanitizedQuery.search || sanitizedQuery.q) as string | undefined;
     if (searchTerm && typeof searchTerm === 'string' && searchTerm.trim() !== '') {
@@ -89,8 +94,14 @@ export default factories.createCoreController('api::product.product', () => ({
     }
 
     // 6. Ensure populate defaults to '*' if not specified
-    if (!sanitizedQuery.populate) {
-      sanitizedQuery.populate = '*';
+    if (!sanitizedQuery.populate || sanitizedQuery.populate === '*') {
+      sanitizedQuery.populate = {
+        coverImage: true,
+        images: true,
+        category: true,
+        seo: true,
+        reviews: true,
+      };
     }
 
     // Replace context query with sanitized & enhanced query
@@ -98,5 +109,27 @@ export default factories.createCoreController('api::product.product', () => ({
 
     // Call default Strapi find implementation with sanitized parameters
     return await super.find(ctx);
+  },
+
+  async findOne(ctx) {
+    const { query } = ctx;
+    const sanitizedQuery: any = { ...query };
+
+    if (!sanitizedQuery.locale) {
+      sanitizedQuery.locale = 'uz';
+    }
+
+    if (!sanitizedQuery.populate || sanitizedQuery.populate === '*') {
+      sanitizedQuery.populate = {
+        coverImage: true,
+        images: true,
+        category: true,
+        seo: true,
+        reviews: true,
+      };
+    }
+
+    ctx.query = sanitizedQuery;
+    return await super.findOne(ctx);
   },
 }));

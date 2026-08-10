@@ -5,6 +5,11 @@ export default factories.createCoreController('api::category.category', () => ({
     const { query } = ctx;
     const sanitizedQuery: any = { ...query };
 
+    // Default locale to 'uz' if not provided (supports uz, ru, en, all)
+    if (!sanitizedQuery.locale) {
+      sanitizedQuery.locale = 'uz';
+    }
+
     // Default sort by admin defined order ascending, then id ascending
     if (!sanitizedQuery.sort) {
       sanitizedQuery.sort = ['order:asc', 'id:asc'];
@@ -32,6 +37,10 @@ export default factories.createCoreController('api::category.category', () => ({
   async findOne(ctx) {
     const { query } = ctx;
     const sanitizedQuery: any = { ...query };
+
+    if (!sanitizedQuery.locale) {
+      sanitizedQuery.locale = 'uz';
+    }
 
     if (!sanitizedQuery.populate || sanitizedQuery.populate === '*') {
       sanitizedQuery.populate = {
