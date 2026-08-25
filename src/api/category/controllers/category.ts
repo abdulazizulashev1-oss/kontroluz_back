@@ -15,18 +15,28 @@ export default factories.createCoreController('api::category.category', () => ({
       sanitizedQuery.sort = ['order:asc', 'id:asc'];
     }
 
-    // If populate is '*' or empty, deeply populate subcategories, parent, coverImage, and products
+    // Support rootOnly flag to easily return only top-level (parent) categories
+    if (sanitizedQuery.rootOnly === 'true' || sanitizedQuery.rootOnly === true) {
+      delete sanitizedQuery.rootOnly;
+      if (!sanitizedQuery.filters) sanitizedQuery.filters = {};
+      sanitizedQuery.filters.parent = { $null: true };
+    }
+
+    // Optimized populate: exclude heavy `products` array by default to avoid memory & database slowdown
     if (!sanitizedQuery.populate || sanitizedQuery.populate === '*') {
       sanitizedQuery.populate = {
         subcategories: {
-          populate: '*',
+          populate: {
+            coverImage: true,
+          },
           sort: ['order:asc', 'id:asc'],
         },
         parent: {
-          populate: '*',
+          populate: {
+            coverImage: true,
+          },
         },
         coverImage: true,
-        products: true,
       };
     }
 
@@ -45,14 +55,17 @@ export default factories.createCoreController('api::category.category', () => ({
     if (!sanitizedQuery.populate || sanitizedQuery.populate === '*') {
       sanitizedQuery.populate = {
         subcategories: {
-          populate: '*',
+          populate: {
+            coverImage: true,
+          },
           sort: ['order:asc', 'id:asc'],
         },
         parent: {
-          populate: '*',
+          populate: {
+            coverImage: true,
+          },
         },
         coverImage: true,
-        products: true,
       };
     }
 
