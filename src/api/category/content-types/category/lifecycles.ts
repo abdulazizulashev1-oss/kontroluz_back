@@ -9,7 +9,7 @@ async function triggerRevalidation(model: string, entry: any) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model, entry }),
-      }).catch(() => {});
+      }).catch(() => { });
     }
   } catch (err) {
     // Revalidation errors should not break backend persistence

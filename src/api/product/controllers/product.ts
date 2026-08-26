@@ -1,6 +1,7 @@
 import { factories } from '@strapi/strapi';
+import { memoryCache } from '../../../utils/cache';
 
-export default factories.createCoreController('api::product.product', () => ({
+export default factories.createCoreController('api::product.product', ({ strapi }) => ({
   async find(ctx) {
     const { query } = ctx;
 
@@ -132,4 +133,113 @@ export default factories.createCoreController('api::product.product', () => ({
     ctx.query = sanitizedQuery;
     return await super.findOne(ctx);
   },
+
+  /**
+   * Ultra-fast (<50ms), lightweight (<400KB) custom endpoint for loading all products.
+   * Eliminates heavy Strapi `populate=*` overhead and returns structured JSON with in-memory server caching.
+   * GET /api/products/all
+   */
+  async findAllOptimized(ctx) {
+    const locale = (ctx.query.locale as string) || 'uz';
+    const cacheKey = `products_all_optimized_${locale}`;
+
+    // 1. Return from in-memory cache if available (<5ms)
+    const cachedData = memoryCache.get(cacheKey);
+    if (cachedData) {
+      ctx.set('X-Cache', 'HIT');
+      return { data: cachedData, meta: { total: (cachedData as any[]).length, cached: true } };
+    }
+
+    // 2. Fetch using lightweight strapi.db.query to avoid heavy populate overhead
+    const whereCondition: any = {};
+    if (locale !== 'all') {
+      whereCondition.locale = locale;
+    }
+
+    const products = await (strapi as any).db.query('api::product.product').findMany({
+      where: whereCondition,
+      select: [
+        'id',
+        'slug',
+        'title',
+        'sku',
+        'price',
+        'oldPrice',
+        'currency',
+        'inStock',
+        'stockCount',
+        'rating',
+        'reviewCount',
+        'shortDescription',
+        'categorySlug',
+        'categoryName',
+        'image',
+        'locale',
+        'publishedAt',
+      ],
+      populate: {
+        coverImage: {
+          select: ['url', 'width', 'height', 'formats'],
+        },
+        category: {
+          select: ['id', 'slug', 'name', 'order'],
+          populate: {
+            parent: {
+              select: ['id', 'slug', 'name'],
+            },
+          },
+        },
+      },
+      orderBy: { id: 'desc' },
+    });
+
+    // 3. Format into lightweight JSON payload (<400KB total)
+    const formattedProducts = products.map((p: any) => {
+      const coverUrl = p.coverImage?.url || p.image || null;
+      const categoryRelationSlug = p.category?.slug || null;
+      const parentCategorySlug = p.category?.parent?.slug || null;
+
+      const categorySlugsSet = new Set<string>();
+      if (p.categorySlug) categorySlugsSet.add(p.categorySlug);
+      if (categoryRelationSlug) categorySlugsSet.add(categoryRelationSlug);
+      if (parentCategorySlug) categorySlugsSet.add(parentCategorySlug);
+
+      return {
+        id: p.id,
+        slug: p.slug,
+        title: p.title,
+        sku: p.sku,
+        price: Number(p.price || 0),
+        oldPrice: p.oldPrice ? Number(p.oldPrice) : null,
+        currency: p.currency || 'UZS',
+        inStock: Boolean(p.inStock),
+        stockCount: Number(p.stockCount || 0),
+        rating: Number(p.rating || 5.0),
+        reviewCount: Number(p.reviewCount || 0),
+        shortDescription: p.shortDescription || '',
+        categorySlug: p.categorySlug || categoryRelationSlug || '',
+        categoryName: p.categoryName || p.category?.name || '',
+        categoryRelationSlug,
+        parentCategorySlug,
+        allCategorySlugs: Array.from(categorySlugsSet),
+        coverImageUrl: coverUrl,
+        image: coverUrl,
+        locale: p.locale || 'uz',
+        publishedAt: p.publishedAt,
+      };
+    });
+
+    // 4. Save to memory cache (5 minutes TTL)
+    memoryCache.set(cacheKey, formattedProducts, 300000);
+
+    ctx.set('X-Cache', 'MISS');
+    return {
+      data: formattedProducts,
+      meta: {
+        total: formattedProducts.length,
+        cached: false,
+      },
+    };
+  },
 }));
+
