@@ -67,8 +67,24 @@ export default factories.createCoreController('api::product.product', ({ strapi 
       delete sanitizedQuery.categorySlug;
       delete sanitizedQuery.category;
 
-      if (!sanitizedQuery.filters) sanitizedQuery.filters = {};
-      sanitizedQuery.filters.categorySlug = { $eq: categorySlug };
+      const catFilters = [
+        { categorySlug: { $eq: categorySlug } },
+        { category: { slug: { $eq: categorySlug } } },
+        { category: { parent: { slug: { $eq: categorySlug } } } },
+      ];
+
+      if (sanitizedQuery.filters) {
+        sanitizedQuery.filters = {
+          $and: [
+            sanitizedQuery.filters,
+            { $or: catFilters },
+          ],
+        };
+      } else {
+        sanitizedQuery.filters = {
+          $or: catFilters,
+        };
+      }
     }
 
     // 4. Handle InStock Filter
