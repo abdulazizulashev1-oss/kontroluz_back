@@ -22,11 +22,19 @@ export default {
           'api::category.category.findOne',
           'api::product.product.find',
           'api::product.product.findOne',
+          'api::product.product.findAllOptimized',
           'api::review.review.find',
           'api::review.review.findOne',
           'api::lead.lead.create',
           'api::order.order.create',
           'api::order.order.findOne',
+          'api::bot.bot.getCategories',
+          'api::bot.bot.getProducts',
+          'api::bot.bot.searchProducts',
+          'api::bot.bot.getProductDetail',
+          'api::bot.bot.createLead',
+          'api::bot.bot.createOrder',
+          'api::bot.bot.checkOrderStatus',
         ];
 
         for (const action of permissionsToEnable) {
